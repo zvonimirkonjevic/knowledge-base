@@ -1,7 +1,10 @@
 [project]
-name = "sqlalchemy"
+name = "sqlalchemy-sandbox"
 version = "0.1.0"
-description = "Add your description here"
+description = "Collection of small projects created during learning of SQLAlchemy"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "psycopg2>=2.9.12",
+    "sqlalchemy>=2.0.50",
+]
