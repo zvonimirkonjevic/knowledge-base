@@ -111,7 +111,6 @@ with Session(engine) as session:
     ).all()
 
 # selecting from labeled sql expressions
-from sqlalchemy import func, cast
 stmt = select(
     ("Username: " + user_table.c.name).label("username"),
 ).order_by(user_table.c.name)
@@ -135,3 +134,39 @@ stmt = select(
 with engine.connect() as conn:
     for row in conn.execute(stmt):
         print(f"{row.p}, {row.name}")
+
+print(user_table.c.name == "Patrick")
+print(address_table.c.user_id > 10)
+
+# simple where clause
+print(select(user_table).where(user_table.c.name == "Spongebob"))
+
+# chaining multiple where clauses
+print(
+    select(address_table.c.email_address)
+    .where(user_table.c.name == "Patrick")
+    .where(address_table.c.user_id == user_table.c.id)
+)
+
+# chaining multiple rules inside single where clause
+print(
+    select(address_table.c.email_address)
+    .where(
+        user_table.c.name == "Patrick",
+        address_table.c.user_id == user_table.c.id
+    )
+)
+
+# we can also directly use and_() and or_()
+from sqlalchemy import and_, or_
+print(
+    select(address_table).where(
+        and_(
+            or_(user_table.c.name == "Spongebob", user_table.c.name == "Sandy"),
+            address_table.c.user_id == user_table.c.id
+        )
+    )
+)
+
+# we can use .filter_by as shortcut instead of writing long .where for simple equality comparisons
+print(select(User).filter_by(name="Spongebob", fullname="Spongebob Squarepants"))
