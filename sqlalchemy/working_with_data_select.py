@@ -1,78 +1,16 @@
-# ========================
-# Setup DB
-# ========================
-
-from sqlalchemy import create_engine
-
-DB_URL = "postgresql://test:test@localhost/test_db"
-engine = create_engine(DB_URL, echo=True)
-
-
-from sqlalchemy import MetaData
-from sqlalchemy import Table, Column, Integer, String
-
-metadata_obj = MetaData()
-
-user_table = Table(
-    "user_account",
-    metadata_obj,
-    Column("id", Integer, primary_key=True),
-    Column("name", String(30)),
-    Column("fullname", String)
-)
-
-from sqlalchemy import ForeignKey
-
-address_table = Table(
-    "address",
-    metadata_obj,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", ForeignKey("user_account.id"), nullable=False),
-    Column("email_address", String, nullable=False)
-)
-
-metadata_obj.create_all(engine)
-
-
+# DB setup (engine + tables + ORM models) lives in models.py and is created
+# and populated by seed.py, which runs via `docker compose up`.
 from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from models import engine, user_table, address_table, User, Address
+
 stmt = select(user_table).where(user_table.c.name == "Spongebob")
 print(stmt)
 
 with engine.connect() as conn:
     for row in conn.execute(stmt):
         print(row)
-
-from sqlalchemy.orm import DeclarativeBase, Session
-class Base(DeclarativeBase):
-    pass
-
-from typing import List
-from typing import Optional
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
-from sqlalchemy.orm import relationship
-
-class User(Base):
-    __tablename__ = "user_account"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(30))
-    fullname: Mapped[Optional[str]]
-
-    addresses: Mapped[List["Address"]] = relationship(back_populates="user")
-    def __repr__(self) -> str:
-        return f"User(id={self.id!r}, name={self.name!r}, fullname={self.fullname!r})"
-
-class Address(Base):
-    __tablename__ = "address"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    email_address: Mapped[str]
-    user_id = mapped_column(ForeignKey("user_account.id"))
-    user: Mapped[User] = relationship(back_populates="addresses")
-
-    def __repr__(self) -> str:
-        return f"Address(id={self.id!r}, email_address={self.email_address!r})"
-
-Base.metadata.create_all(engine)
 
 # ========================
 # Select Statement
