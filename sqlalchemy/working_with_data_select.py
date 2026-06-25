@@ -108,3 +108,33 @@ print(
 
 # we can use .filter_by as shortcut instead of writing long .where for simple equality comparisons
 print(select(User).filter_by(name="Spongebob", fullname="Spongebob Squarepants"))
+
+# simple from clause
+print(select(user_table.c.name))
+
+# comma-separated from clause
+print(select(user_table.c.name, address_table.c.email_address))
+
+# join statement where we specify left and right side
+print(
+    select(user_table.c.name, address_table.c.email_address).join_from(
+        user_table, address_table
+    )
+)
+
+# join statement where we only specify right side
+print(select(user_table.c.name, address_table.c.email_address).join(address_table))
+
+# we can use select_from to modify clause if inffered one is not what we want
+print(select(user_table.c.name, address_table.c.email_address).select_from(user_table).join(address_table))
+
+# another use case for select_from is when our selected columns do not provide enough info for from clause
+from sqlalchemy import func
+print(select(func.count("*")).select_from(user_table))
+
+# when we have multiple or no foreign keys between tables we need to specify on clause
+print(
+    select(address_table.c.email_address)
+    .select_from(user_table)
+    .join(address_table, user_table.c.id == address_table.c.user_id)
+)
