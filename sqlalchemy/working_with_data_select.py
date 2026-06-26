@@ -265,3 +265,70 @@ stmt = (
 with Session(engine) as session:
     for user, address in session.execute(stmt):
         print(f"{user} {address}")
+
+# simple scalar subquery
+subq = (
+    select(func.count(address_table.c.id))
+    .where(user_table.c.id == address_table.c.user_id)
+    .scalar_subquery()
+)
+print(subq)
+
+# even though subquery contains both tables in from clause, when used in enclosing select statement it is correlated and not inside from clause
+stmt = select(user_table.c.name, subq.label("address_count"))
+print(stmt)
+
+# in the case where the correlation is ambiguous, sqlalchemy will let us know that more clarity is needed
+#stmt = (
+#    select(
+#        user_table.c.name,
+#        address_table.c.email_address,
+#        subq.label("address_count"),
+#    )
+#    .join_from(user_table, address_table)
+#    .order_by(user_table.c.id, address_table.c.id)
+#)
+#print(stmt)
+
+# to specify by what we want to correlate we use .correlate()
+subq = (
+    select(func.count(address_table.c.id))
+    .where(user_table.c.id == address_table.c.user_id)
+    .scalar_subquery()
+    .correlate(user_table)
+)
+
+# this query counts how many emails does user have, 
+# then we select user name, their email address and number of emails
+# we join them as we take data from two different tables
+with engine.connect() as conn:
+    result = conn.execute(
+        select(
+            user_table.c.name,
+            address_table.c.email_address,
+            subq.label("address_count"),
+        )
+        .join_from(user_table, address_table)
+        .order_by(user_table.c.id, address_table.c.id)
+    )
+    print(result.all())
+
+# defining lateral correlation
+subq = (
+    select(
+        func.count(address_table.c.id).label("address_count"),
+        address_table.c.email_address,
+        address_table.c.user_id,
+    )
+    .where(user_table.c.id == address_table.c.user_id)
+    .lateral()
+)
+
+# here we can see that our lateral correlation above
+# allows us to get user_table.c.id inside subquery that is on the right side of join clause
+stmt = (
+    select(user_table.c.name, subq.c.address_count, subq.c.email_address)
+    .join_from(user_table, subq)
+    .order_by(user_table.c.id, subq.c.email_address)
+)
+print(stmt)
