@@ -214,3 +214,54 @@ print(
     .where(address_alias_2.email_address == "patrick@gmail.com") # add clause to join users whos email is this value
     # this is single query with and between two where clauses
 )
+
+# simple subquery
+subq = (
+    select(func.count(address_table.c.id).label("count"), address_table.c.user_id)
+    .group_by(address_table.c.user_id)
+    .subquery()
+)
+print(subq)
+print(select(subq.c.user_id, subq.c.count))
+
+# using subquery in statement
+stmt = select(user_table.c.name, user_table.c.fullname, subq.c.count).join_from(
+    user_table, subq
+)
+print(stmt)
+
+# simple cte
+subq = (
+    select(func.count(address_table.c.id).label("count"), address_table.c.user_id)
+    .group_by(address_table.c.user_id)
+    .cte()
+)
+
+stmt = select(user_table.c.name, user_table.c.fullname, subq.c.count).join_from(
+    user_table, subq
+)
+print(stmt)
+
+# subquery in ORM
+subq = select(Address).where(~Address.email_address.like("%@aol.com")).subquery()
+address_subq = aliased(Address, subq)
+stmt = (
+    select(User, address_subq)
+    .join_from(User, address_subq)
+    .order_by(User.id, address_subq.id)
+)
+with Session(engine) as session:
+    for user, address in session.execute(stmt):
+        print(f"{user} {address}")
+
+# cte in ORM
+cte_obj = select(Address).where(~Address.email_address.like("%@aol.com")).cte()
+address_cte = aliased(Address, cte_obj)
+stmt = (
+    select(User, address_cte)
+    .join_from(User, address_cte)
+    .order_by(User.id, address_cte.id)
+)
+with Session(engine) as session:
+    for user, address in session.execute(stmt):
+        print(f"{user} {address}")
