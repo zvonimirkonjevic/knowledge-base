@@ -370,3 +370,24 @@ orm_stmt = select(user_alias).order_by(user_alias.id) # by creating subquery we 
 with Session(engine) as session:
     for obj in session.execute(orm_stmt).scalars():
         print(obj)
+
+# simple exists keyword 
+subq = (
+    select(func.count(address_table.c.id))
+    .where(user_table.c.id == address_table.c.user_id)
+    .group_by(address_table.c.user_id)
+    .having(func.count(address_table.c.id) > 1)
+).exists()
+
+with engine.connect() as conn:
+    result = conn.execute(select(user_table.c.name).where(subq))
+    print(result.all())
+
+# simple not exists keyword
+subq = (
+    select(address_table.c.id).where(user_table.c.id == address_table.c.user_id)
+).exists()
+
+with engine.connect() as conn:
+    result = conn.execute(select(user_table.c.name).where(~subq)) # ~ is binary negation operator
+    print(result.all())
