@@ -332,3 +332,41 @@ stmt = (
     .order_by(user_table.c.id, subq.c.email_address)
 )
 print(stmt)
+
+# simple union all statement
+from sqlalchemy import union_all
+stmt1 = select(user_table).where(user_table.c.name == "Sandy")
+stmt2 = select(user_table).where(user_table.c.name == "Spongebob")
+u = union_all(stmt1, stmt2)
+with engine.connect() as conn:
+    result = conn.execute(u)
+    print(result.all())
+
+# subquery from union
+u_subq = u.subquery()
+stmt = (
+    select(u_subq.c.name, address_table.c.email_address)
+    .join_from(address_table, u_subq)
+    .order_by(u_subq.c.name, address_table.c.email_address)
+)
+
+with engine.connect() as conn:
+    result = conn.execute(stmt)
+    print(result.all())
+
+# simple union on ORM objects
+stmt1 = select(User).where(User.name == "Sandy")
+stmt2 = select(User).where(User.name == "Spongebob")
+u = union_all(stmt1, stmt2)
+
+orm_stmt = select(User).from_statement(u)
+with Session(engine) as session:
+    for obj in session.execute(orm_stmt).scalars():
+        print(obj)
+
+# subquery from union in ORM
+user_alias = aliased(User, u.subquery())
+orm_stmt = select(user_alias).order_by(user_alias.id) # by creating subquery we can now use order_by
+with Session(engine) as session:
+    for obj in session.execute(orm_stmt).scalars():
+        print(obj)
