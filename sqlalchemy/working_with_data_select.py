@@ -138,3 +138,79 @@ print(
     .select_from(user_table)
     .join(address_table, user_table.c.id == address_table.c.user_id)
 )
+
+print(select(user_table).join(address_table, isouter=True))
+print(select(user_table).join(address_table, full=True))
+
+# simple order by clause
+print(select(user_table).order_by(user_table.c.name))
+
+# in ORM this way we choose asc or desc order
+print(select(User).order_by(User.fullname.desc()))
+
+# aggregate functions using group by/having
+count_fn = func.count(user_table.c.id)
+print(count_fn)
+
+# simple example of group by and having clauses
+with engine.connect() as conn:
+    results = conn.execute(
+        select(User.name, func.count(Address.id).label("count"))
+        .join(Address)
+        .group_by(User.name)
+        .having(func.count(Address.id) > 1)
+    )
+    print(results.all())
+
+from sqlalchemy import insert
+with engine.connect() as conn:
+    # add duplicated value for address
+    conn.execute(insert(address_table).values(email_address="notspongebob@sqlalchemy.org", user_id=1))
+
+    results = conn.execute(
+        select(User.name, func.count(Address.id).label("count"))
+        .join(Address)
+        .group_by(User.name)
+        .having(func.count(Address.id) > 1)
+    )
+    print(results.all())
+
+from sqlalchemy import func, desc
+stmt = (
+    select(Address.user_id, func.count(Address.id).label("num_addresses")) # this selects user_id and number of addresses
+    .group_by("user_id") # we group number of addresses by user_id, to get number of addresses per user
+    .order_by("user_id", desc("num_addresses")) # this orders them by user_id and in descending order number of addresses
+)
+print(stmt)
+
+# simple use of aliases
+user_alias_1 = user_table.alias()
+user_alias_2 = user_table.alias()
+print(
+    select(user_alias_1.c.name, user_alias_2.c.name).join_from(
+        user_alias_1, user_alias_2, user_alias_1.c.id > user_alias_2.c.id
+    )
+)
+
+# simple use of aliases in ORM
+from sqlalchemy.orm import aliased
+address_alias_1 = aliased(Address)
+address_alias_2 = aliased(Address)
+
+# we do not have these entires as each script is indepenedent on other scripts from tutorial
+from sqlalchemy.orm import Session
+with Session(engine) as session:
+    patrick_aol = Address(email_address="patrick@aol.com", user_id=3)
+    patrick_gmail = Address(email_address="patric@gmail.com", user_id=3)
+    session.add(patrick_aol)
+    session.add(patrick_gmail)
+    session.commit()
+
+print(
+    select(User) # select whole user object
+    .join_from(User, address_alias_1) # join user and address table on foreign key
+    .where(address_alias_1.email_address == "patrick@aol.com") # add clause to join users whos email is this value
+    .join_from(User, address_alias_2) # do another join on foreign key
+    .where(address_alias_2.email_address == "patrick@gmail.com") # add clause to join users whos email is this value
+    # this is single query with and between two where clauses
+)
