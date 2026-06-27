@@ -527,3 +527,20 @@ with engine.connect() as conn:
 from sqlalchemy.dialects import oracle
 stmt = select(func.scalar_strings(5).column_valued("s"))
 print(stmt.compile(dialect=oracle.dialect()))
+
+# simple use of cast function
+from sqlalchemy import cast
+stmt = select(cast(user_table.c.id, String))
+with engine.connect() as conn:
+    result = conn.execute(stmt)
+    print(result.all())
+
+from sqlalchemy import JSON
+print(cast("{'a': 'b'}", JSON)["a"])
+
+# simple use of type_coerce
+from sqlalchemy import JSON
+from sqlalchemy import type_coerce
+from sqlalchemy.dialects import mysql
+s = select(type_coerce({"some_key": {"foo": "bar"}}, JSON)["some_key"])
+print(s.compile(dialect=mysql.dialect()))
