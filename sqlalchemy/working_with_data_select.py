@@ -391,3 +391,139 @@ subq = (
 with engine.connect() as conn:
     result = conn.execute(select(user_table.c.name).where(~subq)) # ~ is binary negation operator
     print(result.all())
+
+# simple count function that returns number of rows returned
+print(select(func.count()).select_from(user_table))
+
+# simple lower function that converts string to lowercase
+print(select(func.lower("A String With Much UPPERCASE")))
+
+# simple now function that returns current time, sqlalchemy knows how to handle different dbs
+stmt = select(func.now())
+with engine.connect() as conn:
+    result = conn.execute(stmt)
+    print(result.all())
+
+# custom function using func namespace will still be rendered as SQL function
+print(select(func.some_crazy_function(user_table.c.name, 17)))
+
+# common sql function such as count, now, max, concat include different SQL statements for different backends
+# postgres and oracle backends have different sql statements for now function which are included in func namespace
+from sqlalchemy.dialects import postgresql
+print(select(func.now()).compile(dialect=postgresql.dialect()))
+
+from sqlalchemy.dialects import oracle
+print(select(func.now()).compile(dialect=oracle.dialect()))
+
+# pre-configured SQL function (only a few dozen of these)
+print(func.now().type)
+
+# arbitrary SQL function (all other SQL functions)
+print(func.run_some_calculation().type)
+
+# to add return type to sql function we specify type_
+from sqlalchemy import JSON
+function_expr = func.json_object('{a, 1, b, "def", c, 3.5}', type_=JSON)
+
+stmt = select(function_expr["def"])
+print(stmt)
+
+# built in functions have already specified return type that sometimes depends on how we use them as seen below
+from sqlalchemy import Column, Integer, String
+m1 = func.max(Column("some_int", Integer))
+print(m1.type)
+
+m2 = func.max(Column("some_str", String))
+print(m2.type)
+
+print(func.now().type)
+print(func.current_date().type)
+
+print(func.concat("x", "y").type)
+
+# built in function that doesnt have specified return type
+print(func.upper("lowercase").type)
+
+# some python's operators like + will be based on content around it
+# be correctly interpreted by sqlalchemy as concatenation
+print(select(func.upper("lowercase") + " suffix"))
+
+# advanced sql function techniques - partition by
+stmt = (
+    select(
+        # count rows, partition (group) by user name, and sort them by email id
+        func.row_number().over(partition_by=user_table.c.name),
+        user_table.c.name,
+        address_table.c.email_address,
+    )
+    .select_from(user_table)
+    .join(address_table)
+)
+with engine.connect() as conn:  
+    # result is list of rows not single row like it would be with max or sum
+    # results are grouped by user's name  meaning first all entries for Patrick will be shown then for other users
+    result = conn.execute(stmt)
+    print(result.all())
+
+# using order_by instead of partition by
+stmt = (
+    select(
+        func.count().over(order_by=user_table.c.name),
+        user_table.c.name,
+        address_table.c.email_address,
+    )
+    .select_from(user_table)
+    .join(address_table)
+)
+with engine.connect() as conn:
+    # instead of returning 1,2,3... for patrick it sees patrick name first, sets counter
+    # and tracks number of instances for name patrick until tie is broken when sandy comes
+    # thats why we get 21 returned next to each entry related to patrick name 
+    result = conn.execute(stmt)
+    print(result.all())
+
+# simple within clause
+print(
+    func.unnest(
+        func.percentile_disc([0.25, 0.5, 0.75, 1]).within_group(user_table.c.name)
+    )
+)
+
+# simple filter within function
+stmt = (
+    select(
+        func.count(address_table.c.email_address).filter(user_table.c.name == "Sandy"),
+        func.count(address_table.c.email_address).filter(
+            user_table.c.name == "Spongebob"
+        ),
+    )
+    .select_from(user_table)
+    .join(address_table)
+)
+with engine.connect() as conn:  
+    result = conn.execute(stmt)
+    print(result.all())
+
+# simple table-valued function
+# due to us using postgres we had to adopt this function to it
+# changed func.json_each to json_array_elements_text instead
+
+# this function unpacks json valid array into three rows with single column value
+# we then filter and take rows where values are "two" and "three"
+onetwothree = func.json_array_elements_text('["one", "two", "three"]').table_valued("value")
+stmt = select(onetwothree).where(onetwothree.c.value.in_(["two", "three"]))
+with engine.connect() as conn:
+    result = conn.execute(stmt)
+    print(result.all())
+
+# simple column valued function
+from sqlalchemy import select, func
+stmt = select(func.json_array_elements('["one", "two"]').column_valued("x"))
+print(stmt)
+with engine.connect() as conn:
+    result = conn.execute(stmt)
+    print(results.all())
+
+from sqlalchemy.dialects import oracle
+stmt = select(func.scalar_strings(5).column_valued("s"))
+print(stmt.compile(dialect=oracle.dialect()))
