@@ -96,3 +96,41 @@ update_stmt = (
 from sqlalchemy.dialects import postgresql
 print(update_stmt.compile(dialect=postgresql.dialect()))
 
+# simple delete statement
+from sqlalchemy import delete
+stmt = delete(user_table).where(user_table.c.name == "Patrick")
+print(stmt)
+
+# mutlitple table deletes in mysql
+delete_stmt = (
+    delete(user_table)
+    .where(user_table.c.id == address_table.c.user_id)
+    .where(address_table.c.email_address == "patrick@aol.com")
+)
+from sqlalchemy.dialects import mysql
+print(delete_stmt.compile(dialect=mysql.dialect()))
+
+# getting affected row count from update and delete
+with engine.begin() as conn:
+    result = conn.execute(
+        update(user_table)
+        .values(fullname="Patrick McStar")
+        .where(user_table.c.name == "Patrick")
+    )
+    print(result.rowcount)
+
+# simple use of returning clause
+update_stmt = (
+    update(user_table)
+    .where(user_table.c.name == "Patrick")
+    .values(fullname="Patrick the Star")
+    .returning(user_table.c.id, user_table.c.name)
+)
+print(update_stmt)
+
+delete_stmt = (
+    delete(user_table)
+    .where(user_table.c.name == "Patrick")
+    .returning(user_table.c.id, user_table.c.name)
+)
+print(delete_stmt)
