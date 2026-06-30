@@ -12,6 +12,8 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
-COPY models.py seed.py ./
+COPY models/ ./models/
+COPY scripts/ ./scripts/
 
-CMD ["uv", "run", "python", "seed.py"]
+# Run as a module from /app so `from models import ...` resolves.
+CMD ["uv", "run", "python", "-m", "scripts.seed"]

@@ -1,7 +1,3 @@
-# Shared DB setup: engine + table/model definitions.
-# Imported by the tutorial scripts and by seed.py. No side effects on import
-# (no create_all / inserts here) so importing this never touches the database.
-
 import os
 from typing import List, Optional
 
@@ -21,12 +17,9 @@ from sqlalchemy.orm import (
     relationship,
 )
 
-# Host scripts talk to localhost; inside docker compose the seed service sets
-# DB_URL to use the "db" service hostname instead.
 DB_URL = os.environ.get("DB_URL", "postgresql://test:test@localhost/test_db")
 engine = create_engine(DB_URL, echo=True)
 
-# ---- Core table definitions ----
 metadata_obj = MetaData()
 
 user_table = Table(
@@ -46,7 +39,6 @@ address_table = Table(
 )
 
 
-# ---- ORM model definitions (mapped to the same tables) ----
 class Base(DeclarativeBase):
     pass
 

@@ -1,7 +1,3 @@
-# Seed script: builds a clean schema and loads the canonical tutorial data.
-# Runs automatically as the "seed" service on `docker compose up` so the data
-# scripts (select/insert/transactions) have tables and rows to work against.
-
 from sqlalchemy import insert, text
 
 from models import engine, user_table, address_table, Base
