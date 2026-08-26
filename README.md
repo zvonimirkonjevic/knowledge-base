@@ -9,6 +9,7 @@ snippets, and worked-through tutorials, each with its own setup and dependencies
 | Project | What it covers |
 |---------|----------------|
 | [sqlalchemy_unified_tutorial/](sqlalchemy_unified_tutorial/) | Working through the [SQLAlchemy 2.0 Unified Tutorial](https://docs.sqlalchemy.org/en/20/tutorial/index.html) — transactions, the DBAPI, Core/ORM data manipulation, and querying against a Dockerized PostgreSQL database. |
+| [zero_to_mastery_pytorch/](zero_to_mastery_pytorch/) | Working through the [Zero to Mastery: Learn PyTorch for Deep Learning](https://www.learnpytorch.io/) course — tensor fundamentals, the training workflow, neural network classification, computer vision, custom datasets, and going modular. Notebooks per topic, plus exercises and extra curriculum from the official PyTorch tutorials. |
 
 ## Structure
 
